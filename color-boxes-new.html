@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Color Boxes</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html, body {
+    height: 100%;
+    width: 100%;
+  }
+
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100vw;
+    background: #1e1e1e;
+  }
+
+  .grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-content: center;
+    align-items: center;
+    gap: 20px;
+    width: 95vw;
+    height: 95vh;
+    overflow: auto;
+  }
+
+  .box {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    background-color: #444;
+    border-radius: 12px;
+    cursor: grab;
+    transition: background-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .box:hover {
+    transform: scale(1.03);
+  }
+
+  .box:active {
+    cursor: grabbing;
+  }
+
+  .box .number {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 90px;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.18);
+    pointer-events: none;
+  }
+
+  /* dragging visual states */
+  .box.dragging {
+    opacity: 0.4;
+  }
+
+  .box.drag-over {
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.6), 0 4px 10px rgba(0,0,0,0.4);
+  }
+</style>
+</head>
+<body>
+
+  <div class="grid" id="grid"></div>
+
+  <script>
+    const NUM_BOXES = 16;
+    const colors = [
+      '#444',    // grey (default)
+      '#e74c3c', // red
+      '#2ecc71'  // green
+    ];
+
+    const grid = document.getElementById('grid');
+    let dragSrcEl = null;
+
+    // Build boxes
+    for (let i = 1; i <= NUM_BOXES; i++) {
+      const box = document.createElement('div');
+      box.className = 'box';
+      box.draggable = true;
+      box.dataset.colorIndex = '0';
+
+      const numberEl = document.createElement('div');
+      numberEl.className = 'number';
+      numberEl.textContent = i;
+
+      box.appendChild(numberEl);
+      grid.appendChild(box);
+    }
+
+    const allBoxes = () => Array.from(grid.querySelectorAll('.box'));
+
+    // --- Click to cycle color ---
+    grid.addEventListener('click', (e) => {
+      const box = e.target.closest('.box');
+      if (!box) return;
+      let idx = parseInt(box.dataset.colorIndex, 10);
+      idx = (idx + 1) % colors.length;
+      box.dataset.colorIndex = idx;
+      box.style.backgroundColor = colors[idx];
+    });
+
+    // --- Drag and drop reordering ---
+    allBoxes().forEach(box => {
+      box.addEventListener('dragstart', function (e) {
+        dragSrcEl = this;
+        this.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+
+      box.addEventListener('dragend', function () {
+        this.classList.remove('dragging');
+        allBoxes().forEach(b => b.classList.remove('drag-over'));
+      });
+
+      box.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (this !== dragSrcEl) {
+          this.classList.add('drag-over');
+        }
+      });
+
+      box.addEventListener('dragleave', function () {
+        this.classList.remove('drag-over');
+      });
+
+      box.addEventListener('drop', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.classList.remove('drag-over');
+
+        if (dragSrcEl && dragSrcEl !== this) {
+          const boxes = allBoxes();
+          const srcIndex = boxes.indexOf(dragSrcEl);
+          const targetIndex = boxes.indexOf(this);
+
+          if (srcIndex < targetIndex) {
+            grid.insertBefore(dragSrcEl, this.nextSibling);
+          } else {
+            grid.insertBefore(dragSrcEl, this);
+          }
+        }
+      });
+    });
+  </script>
+
+</body>
+</html>
